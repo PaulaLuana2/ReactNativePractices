@@ -1,9 +1,51 @@
-import { Text, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { Colors } from "react-native/Libraries/NewAppScreen";
 
-export function TaskList({ data }: any) {
+type itemProps = {
+  key: string;
+  name: string;
+};
+
+type taskProps = {
+  data: itemProps;
+  deleteItem: Function;
+  editItem: Function;
+};
+
+export function TaskList({ data, deleteItem, editItem }: taskProps) {
   return (
-    <View>
-      <Text>{data.nome}</Text>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={{ marginRight: 10 }}
+        onPress={() => deleteItem(data.key)}
+      >
+        <Feather name="trash" color={Colors.white} size={20} />
+      </TouchableOpacity>
+
+      <View style={{ paddingRight: 10 }}>
+        <TouchableWithoutFeedback onPress={() => editItem(data.key)}>
+          <Text style={{ color: "#fff", paddingRight: 10 }}>{data.name}</Text>
+        </TouchableWithoutFeedback>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: "#121212",
+    alignItems: "center",
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: 4,
+  },
+});

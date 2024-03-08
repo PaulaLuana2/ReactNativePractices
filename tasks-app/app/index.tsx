@@ -1,4 +1,5 @@
-import { SetStateAction, useState } from "react";
+import { SetStateAction, useEffect, useState } from "react";
+
 import {
   SafeAreaView,
   StyleSheet,
@@ -7,24 +8,78 @@ import {
   TouchableOpacity,
   View,
   FlatList,
+  Keyboard,
 } from "react-native";
 
 import { Login } from "./components/login";
 import { TaskList } from "./components/tasklist";
 
-let tasks = [
-  { key: "1", nome: "Comprar coca colar" },
-  { key: "2", nome: "Estudar javascript" },
-];
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { firebase } from "@react-native-firebase/database";
+
+type itemProps = {
+  key: string;
+  name: string;
+};
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+
+  const [tasks, setTasks] = useState<Array<itemProps>>([]);
 
   const [newTask, setNewTask] = useState("");
 
-  if (!user) {
+  const reference = firebase
+    .app()
+    .database("https://reactnativecourse-a7383-default-rtdb.firebaseio.com/");
+
+  function handleAdd() {
+    if (newTask === "") return;
+
+    let tarefas = reference.ref(`tarefas/${user?.uid}`);
+    let chave = tarefas.push().key;
+
+    if (chave !== null) {
+      tarefas
+        .child(chave)
+        .set({
+          name: newTask,
+        })
+        .then(() => {
+          const data: itemProps = {
+            key: chave === null ? "1" : chave,
+            name: newTask,
+          };
+          setTasks([...tasks, data]);
+        });
+
+      Keyboard.dismiss();
+      setNewTask("");
+    }
+  }
+
+  function handleDelete(key: string) {}
+
+  function handleEdit(data: object) {}
+
+  useEffect(() => {
+    auth().onAuthStateChanged((userState) => {
+      setUser(userState);
+
+      if (loading) {
+        setLoading(false);
+      }
+    });
+  }, []);
+
+  if (!loading) {
     return (
-      <Login changeStatus={(user: SetStateAction<null>) => setUser(user)} />
+      <Login
+        changeStatus={(user: SetStateAction<FirebaseAuthTypes.User | null>) =>
+          setUser(user)
+        }
+      />
     );
   }
 
@@ -37,7 +92,7 @@ export default function App() {
           value={newTask}
           onChangeText={(text) => setNewTask(text)}
         />
-        <TouchableOpacity style={styles.buttonAdd}>
+        <TouchableOpacity style={styles.buttonAdd} onPress={handleAdd}>
           <Text style={styles.buttonText}>+</Text>
         </TouchableOpacity>
       </View>
@@ -45,7 +100,13 @@ export default function App() {
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.key}
-        renderItem={({ item }) => <TaskList data={item} />}
+        renderItem={({ item }) => (
+          <TaskList
+            data={item}
+            deleteItem={handleDelete}
+            editItem={handleEdit}
+          />
+        )}
       />
     </SafeAreaView>
   );

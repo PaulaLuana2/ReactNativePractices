@@ -1,7 +1,6 @@
 import { SetStateAction, useState } from "react";
 
 import {
-  UserCredential,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
