@@ -14,8 +14,9 @@ import {
 import { Login } from "./components/login";
 import { TaskList } from "./components/tasklist";
 
-import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
-import { firebase } from "@react-native-firebase/database";
+import { User, onAuthStateChanged } from "firebase/auth";
+import { ref, set, onValue, push } from "firebase/database";
+import { auth, db } from "./services/firebaseConnection";
 
 type itemProps = {
   key: string;
@@ -23,40 +24,32 @@ type itemProps = {
 };
 
 export default function App() {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const [tasks, setTasks] = useState<Array<itemProps>>([]);
 
   const [newTask, setNewTask] = useState("");
 
-  const reference = firebase
-    .app()
-    .database("https://reactnativecourse-a7383-default-rtdb.firebaseio.com/");
-
   function handleAdd() {
     if (newTask === "") return;
 
-    let tarefas = reference.ref(`tarefas/${user?.uid}`);
-    let chave = tarefas.push().key;
+    const dbReference = ref(db, `tarefas/${user?.uid}`);
+    const newTaskRef = push(dbReference);
 
-    if (chave !== null) {
-      tarefas
-        .child(chave)
-        .set({
+    set(newTaskRef, {
+      name: newTask,
+    }).then(() => {
+      if (newTaskRef.key !== null) {
+        const data: itemProps = {
+          key: newTaskRef.key,
           name: newTask,
-        })
-        .then(() => {
-          const data: itemProps = {
-            key: chave === null ? "1" : chave,
-            name: newTask,
-          };
-          setTasks([...tasks, data]);
-        });
+        };
+        setTasks([...tasks, data]);
+      }
+    });
 
-      Keyboard.dismiss();
-      setNewTask("");
-    }
+    Keyboard.dismiss();
+    setNewTask("");
   }
 
   function handleDelete(key: string) {}
@@ -64,21 +57,15 @@ export default function App() {
   function handleEdit(data: object) {}
 
   useEffect(() => {
-    auth().onAuthStateChanged((userState) => {
-      setUser(userState);
-
-      if (loading) {
-        setLoading(false);
-      }
+    onAuthStateChanged(auth, (user) => {
+      setUser(user);
     });
   }, []);
 
-  if (!loading) {
+  if (!user) {
     return (
       <Login
-        changeStatus={(user: SetStateAction<FirebaseAuthTypes.User | null>) =>
-          setUser(user)
-        }
+        changeStatus={(user: SetStateAction<User | null>) => setUser(user)}
       />
     );
   }
