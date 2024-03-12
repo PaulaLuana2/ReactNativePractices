@@ -1,4 +1,10 @@
-import { SetStateAction, useEffect, useState } from "react";
+import {
+  SetStateAction,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 import {
   SafeAreaView,
@@ -14,9 +20,10 @@ import {
 import { Login } from "./components/login";
 import { TaskList } from "./components/tasklist";
 
-import { User, onAuthStateChanged } from "firebase/auth";
-import { ref, set, push, query, get, remove } from "firebase/database";
+import { User, onAuthStateChanged, signOut } from "firebase/auth";
+import { ref, set, push, query, get, remove, update } from "firebase/database";
 import { auth, db } from "../services/firebaseConnection";
+import { Feather } from "@expo/vector-icons";
 
 type itemProps = {
   key: string;
@@ -26,12 +33,32 @@ type itemProps = {
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
 
+  const inputRef = useRef<TextInput>(null);
   const [tasks, setTasks] = useState<Array<itemProps>>([]);
 
   const [newTask, setNewTask] = useState("");
+  const [key, setKey] = useState("");
 
   function handleAdd() {
     if (newTask === "") return;
+
+    if (key != "") {
+      const dbReference = ref(db, `tarefas/${user?.uid}/${key}`);
+      set(dbReference, {
+        name: newTask,
+      }).then(() => {
+        const taskIndex = tasks.findIndex((item) => item.key === key);
+        const taskClone = tasks;
+        taskClone[taskIndex].name = newTask;
+
+        setTasks([...taskClone]);
+      });
+
+      Keyboard.dismiss();
+      setNewTask("");
+      setKey("");
+      return;
+    }
 
     const dbReference = ref(db, `tarefas/${user?.uid}`);
     const newTaskRef = push(dbReference);
@@ -51,15 +78,19 @@ export default function App() {
     });
   }
 
-  function handleDelete(key: string) {
-    const dbReference = ref(db, `tarefas/${user?.uid}/${key}`);
+  function handleDelete(data: itemProps) {
+    const dbReference = ref(db, `tarefas/${user?.uid}/${data.key}`);
     remove(dbReference).then(() => {
-      const filtered = tasks.filter((item) => item.key !== key);
+      const filtered = tasks.filter((item) => item.key !== data.key);
       setTasks(filtered);
     });
   }
 
-  function handleEdit(data: object) {}
+  function handleEdit(data: itemProps) {
+    setKey(data.key);
+    setNewTask(data.name);
+    inputRef.current!.focus();
+  }
 
   function searchTasks() {
     const queryTasks = query(ref(db, `tarefas/${user?.uid}`));
@@ -74,6 +105,18 @@ export default function App() {
         }
       });
     });
+  }
+
+  function cancelEdit() {
+    setKey("");
+    setNewTask("");
+    Keyboard.dismiss();
+  }
+
+  function logout() {
+    signOut(auth);
+    setUser(null);
+    setTasks([]);
   }
 
   useEffect(() => {
@@ -96,12 +139,23 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {key.length > 0 && (
+        <View style={{ flexDirection: "row", marginBottom: 8 }}>
+          <TouchableOpacity onPress={cancelEdit}>
+            <Feather name="x-circle" size={20} color="#FF0000" />
+          </TouchableOpacity>
+          <Text style={{ marginLeft: 5, color: "#FF0000" }}>
+            Você está editanto uma tarefa
+          </Text>
+        </View>
+      )}
       <View style={styles.containerTask}>
         <TextInput
           style={styles.input}
           placeholder="O que vai fazer hoje?"
           value={newTask}
           onChangeText={(text) => setNewTask(text)}
+          ref={inputRef}
         />
         <TouchableOpacity style={styles.buttonAdd} onPress={handleAdd}>
           <Text style={styles.buttonText}>+</Text>
@@ -119,6 +173,21 @@ export default function App() {
           />
         )}
       />
+      <View
+        style={{
+          flexDirection: "column",
+          display: "flex",
+          alignItems: "flex-end",
+          paddingBottom: 10,
+        }}
+      >
+        <TouchableOpacity onPress={logout}>
+          <Text style={{ color: "#FF0000", fontSize: 18, marginRight: 2 }}>
+            Sair
+          </Text>
+          <Feather name="log-out" color="#FF0000" size={40} />
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }

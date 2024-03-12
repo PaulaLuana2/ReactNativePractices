@@ -24,15 +24,15 @@ export function TaskList({ data, deleteItem, editItem }: taskProps) {
     <View style={styles.container}>
       <TouchableOpacity
         style={{ marginRight: 10 }}
-        onPress={() => deleteItem(data.key)}
+        onPress={() => deleteItem(data)}
       >
         <Feather name="trash" color={Colors.white} size={20} />
       </TouchableOpacity>
 
-      <View style={{ paddingRight: 10 }}>
-        <TouchableWithoutFeedback onPress={() => editItem(data.key)}>
+      <View style={{ paddingRight: 10, flex: 1 }}>
+        <TouchableOpacity onPress={() => editItem(data)}>
           <Text style={{ color: "#fff", paddingRight: 10 }}>{data.name}</Text>
-        </TouchableWithoutFeedback>
+        </TouchableOpacity>
       </View>
     </View>
   );
