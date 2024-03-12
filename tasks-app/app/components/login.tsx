@@ -5,7 +5,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
-import { auth } from "../services/firebaseConnection";
+import { auth } from "../../services/firebaseConnection";
 
 import {
   SafeAreaView,

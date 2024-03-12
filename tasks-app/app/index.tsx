@@ -16,7 +16,7 @@ import { TaskList } from "./components/tasklist";
 
 import { User, onAuthStateChanged } from "firebase/auth";
 import { ref, set, onValue, push, query, get } from "firebase/database";
-import { auth, db } from "./services/firebaseConnection";
+import { auth, db } from "../services/firebaseConnection";
 
 type itemProps = {
   key: string;
