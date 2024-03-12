@@ -15,7 +15,7 @@ import { Login } from "./components/login";
 import { TaskList } from "./components/tasklist";
 
 import { User, onAuthStateChanged } from "firebase/auth";
-import { ref, set, onValue, push } from "firebase/database";
+import { ref, set, onValue, push, query, get } from "firebase/database";
 import { auth, db } from "./services/firebaseConnection";
 
 type itemProps = {
@@ -44,23 +44,41 @@ export default function App() {
           key: newTaskRef.key,
           name: newTask,
         };
-        setTasks([...tasks, data]);
+        setTasks([data, ...tasks]);
+        Keyboard.dismiss();
+        setNewTask("");
       }
     });
-
-    Keyboard.dismiss();
-    setNewTask("");
   }
 
   function handleDelete(key: string) {}
 
   function handleEdit(data: object) {}
 
+  function searchTasks() {
+    const queryTasks = query(ref(db, `tarefas/${user?.uid}`));
+    get(queryTasks).then((snapshot) => {
+      snapshot.forEach((child) => {
+        const dataTask: itemProps = {
+          key: child.key,
+          name: child.val().name,
+        };
+        if (tasks.findIndex((value) => value.key == child.key) === -1) {
+          setTasks((oldTasks) => [dataTask, ...oldTasks]);
+        }
+      });
+    });
+  }
+
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       setUser(user);
     });
-  }, []);
+
+    if (user) {
+      searchTasks();
+    }
+  }, [user]);
 
   if (!user) {
     return (
