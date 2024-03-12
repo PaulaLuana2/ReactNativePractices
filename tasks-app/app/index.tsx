@@ -15,7 +15,7 @@ import { Login } from "./components/login";
 import { TaskList } from "./components/tasklist";
 
 import { User, onAuthStateChanged } from "firebase/auth";
-import { ref, set, onValue, push, query, get } from "firebase/database";
+import { ref, set, push, query, get, remove } from "firebase/database";
 import { auth, db } from "../services/firebaseConnection";
 
 type itemProps = {
@@ -51,7 +51,13 @@ export default function App() {
     });
   }
 
-  function handleDelete(key: string) {}
+  function handleDelete(key: string) {
+    const dbReference = ref(db, `tarefas/${user?.uid}/${key}`);
+    remove(dbReference).then(() => {
+      const filtered = tasks.filter((item) => item.key !== key);
+      setTasks(filtered);
+    });
+  }
 
   function handleEdit(data: object) {}
 
